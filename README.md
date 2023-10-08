@@ -1,5 +1,6 @@
 # binview-cli
 A quick and dirty command-line tool for generating images from binary data.
+
 When I say quick and dirty, I mean _really_ quick and dirty. I wrote this in 2 hours and just shared it because I thought other people might find it useful.
 
 # Usage
