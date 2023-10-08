@@ -16,3 +16,4 @@ Also feel free to fork and improve, but I'd appreciate a message so I can see wh
 # TODO
 - Improve performance by parallelising large images (probably one row per CPU or something)
 - Remove dependency on System.Drawing.Common since *nix support is deprecated on .NET 7 (use SkiaSharp?)
+- Check logging is actually working properly since I couldn't see any `LogLevel.Debug` events
