@@ -9,5 +9,5 @@ Build it, and then:
 `binview-cli --input-path '/path/to/some/binary/file' --output-path '/path/to/save/the/image.png'`
 
 # TODO
-- Improve performance by parallelising large images
+- Improve performance by parallelising large images (probably one row per CPU or something)
 - Remove dependency on System.Drawing.Common since *nix support is deprecated on .NET 7
