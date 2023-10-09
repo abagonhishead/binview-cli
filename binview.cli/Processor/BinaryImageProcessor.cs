@@ -46,7 +46,7 @@ namespace binview.cli.Processor
 
             var widthHeight = (int)widthHeightDbl;
             this.logger.LogDebug("Opening input file at: '{InputFilePath}'", this.inputFile.FullName);
-            this.logger.LogTrace("File length is {FileLength}, bytes per pixel is {BytesPerPixel}, using Using width/height of {WidthAndHeight}", this.inputFile.Length, bytesPerPixel, widthHeight);
+            this.logger.LogTrace("File length is {FileLength}, bytes per pixel is {BytesPerPixel}, using width/height of {WidthAndHeight}", this.inputFile.Length, bytesPerPixel, widthHeight);
 
             var buffer = default(byte[]?);
             try
@@ -58,7 +58,6 @@ namespace binview.cli.Processor
                     var y = 0;
                     var position = 0;
                     buffer = bufferPool.Rent(bytesPerPixel);
-                    var memoryBuffer = buffer.AsMemory();
                     using (var graphics = Graphics.FromImage(bitmap))
                     {
                         while (position <= inputStream.Length)
