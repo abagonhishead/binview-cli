@@ -1,18 +1,18 @@
-﻿using System.Globalization;
-using System.Text;
-using binview.cli.Constants;
-using binview.cli.Extensions;
-using binview.cli.Processor;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Console;
-
-namespace binview.cli
+﻿namespace binview.cli
 {
-    public class BinviewCli
+    using System.Globalization;
+    using System.Text;
+    using binview.cli.Constants;
+    using binview.cli.Extensions;
+    using binview.cli.Processor;
+    using Microsoft.Extensions.Configuration;
+    using Microsoft.Extensions.Logging;
+    using Microsoft.Extensions.Logging.Console;
+
+    public static class BinviewCli
     {
-        private const LogLevel defaultLogLevel = LogLevel.Debug;
-        private static readonly Version version = new Version(0, 0, 1, 0);
+        private const LogLevel defaultLogLevel = LogLevel.Trace;
+        private static readonly Version version = new Version(0, 0, 2, 0);
         private static readonly string executableName = AppDomain.CurrentDomain.FriendlyName;
 
         public static async Task<int> Main(string[] args)
@@ -21,13 +21,13 @@ namespace binview.cli
             const int defaultSuccessfulReturnCode = 0;
             var returnCode = defaultUnsuccessfulReturnCode;
 
-            if (args.ContainsKey("help"))
+            if (args.ContainsKey(CommandLineArgs.Help))
             {
                 await BinviewCli.ShowIntroAsync();
                 await BinviewCli.ShowHelpAsync();
                 returnCode = defaultSuccessfulReturnCode;
             }
-            else if (args.ContainsKey("version"))
+            else if (args.ContainsKey(CommandLineArgs.Version))
             {
                 await BinviewCli.ShowIntroAsync();
                 await BinviewCli.ShowVersionAsync();
@@ -41,23 +41,45 @@ namespace binview.cli
                 try
                 {
                     configuration = BinviewCli.BuildCommandLineConfig(args);
-                    loggerFactory = BinviewCli.BuildLoggerFactory(configuration);
-                    var logger = loggerFactory.CreateLogger<BinviewCli>();
-                    try
-                    {
-                        logger.LogInformation("{ExecutableName} v{ExecutableVersion}", BinviewCli.executableName, BinviewCli.version);
+                    loggerFactory = BinviewCli.BuildLoggerFactory(configuration, args.ContainsKey(CommandLineArgs.LogShowTimestamp));
+                    var logger = loggerFactory.CreateLogger(nameof(BinviewCli));
 
-                        var inputFilePath = configuration.GetValue<string>(Configuration.InputPath)!;
-                        var outputFilePath = configuration.GetValue<string>(Configuration.OutputPath)!;
-                        var processor = new BinaryImageProcessor(loggerFactory.CreateLogger<BinaryImageProcessor>(), inputFilePath, outputFilePath);
-                        await processor.ProcessAsync();
-
-                        returnCode = defaultSuccessfulReturnCode;
-                    }
-                    catch (Exception ex)
+                    using (var cts = new CancellationTokenSource())
                     {
-                        returnCode = ex.HResult != 0 ? ex.HResult : defaultUnsuccessfulReturnCode;
-                        logger.LogError(ex, "Something went wrong");
+                        Console.CancelKeyPress += (_, _) =>
+                        {
+                            logger.LogDebug("Cancelling processing...");
+                            cts.Cancel();
+                        };
+
+                        var processor = BinviewCli.BuildProcessor(logger, loggerFactory, configuration, args);
+
+                        try
+                        {
+                            logger.LogInformation("{ExecutableName} v{ExecutableVersion}", BinviewCli.executableName, BinviewCli.version);
+
+                            await processor.ProcessAsync(cts.Token);
+
+                            returnCode = defaultSuccessfulReturnCode;
+                        }
+                        catch (Exception ex)
+                        {
+                            returnCode = ex.HResult != 0 ? ex.HResult : defaultUnsuccessfulReturnCode;
+                            logger.LogCritical(ex, "Something went wrong during processing");
+                        }
+                        finally
+                        {
+                            if (processor is IDisposable disposable)
+                            {
+                                logger.LogTrace("Disposing processor...");
+                                disposable.Dispose();
+                            }
+                            else if (processor is IAsyncDisposable asyncDisposable)
+                            {
+                                logger.LogTrace("Disposing processor...");
+                                await asyncDisposable.DisposeAsync();
+                            }
+                        }
                     }
                 }
                 finally
@@ -69,14 +91,54 @@ namespace binview.cli
             return returnCode;
         }
 
+        private static IBinaryImageProcessor BuildProcessor(ILogger logger, ILoggerFactory loggerFactory, IConfigurationRoot configuration, string[] args)
+        {
+            var inputFilePath = configuration.GetValue<string>(CommandLineArgs.InputPath)!;
+            logger.LogTrace("Configuration: using input file path '{ConfiguredInputFilePath}'", inputFilePath);
+
+            var outputFilePath = configuration.GetValue<string>(CommandLineArgs.OutputPath)!;
+            logger.LogTrace("Configuration: using output file path '{ConfiguredOutputFilePath}'", outputFilePath);
+
+            if (args.ContainsKey(CommandLineArgs.ProcessSerial))
+            {
+                logger.LogTrace("Configuration: serial processing was requested. Using '{ProcessorTypeName}'", typeof(BinaryImageProcessor).FullName);
+                return new BinaryImageProcessor(loggerFactory.CreateLogger<BinaryImageProcessor>(), inputFilePath, outputFilePath);
+            }
+
+            logger.LogTrace("Configuration: using '{ProcessorTypeName}'", typeof(ParallelBinaryImageProcessor).FullName);
+
+            var threadCount = Environment.ProcessorCount + 1;
+            if (configuration.TryGetInt32Value(CommandLineArgs.MaxConcurrency, out var passedThreadCount))
+            {
+                if (passedThreadCount > 0)
+                {
+                    logger.LogTrace("Configuration: using configured max concurrency of {MaxConcurrency}", passedThreadCount);
+                    threadCount = passedThreadCount!.Value;
+                }
+                else
+                {
+                    logger.LogInformation("Configuration: configured max concurrency value of {PassedMaxConcurrency} is invalid. Must be an integer greater than zero. Falling back to default of {MaxConcurrency}", passedThreadCount, threadCount);
+                }
+            }
+
+            return new ParallelBinaryImageProcessor(
+                loggerFactory.CreateLogger<ParallelBinaryImageProcessor>(),
+                new ParallelOptions
+                {
+                    MaxDegreeOfParallelism = threadCount
+                },
+                inputFilePath,
+                outputFilePath);
+        }
+
         private static Task ShowIntroAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
-            return Console.Out.WriteLineAsync($"{BinviewCli.executableName}: a small command-line application for generating images from binary files.{Environment.NewLine}");
+            return Console.Out.WriteLineAsync($"{BinviewCli.executableName}: a small command-line application for generating images from binary files.{Environment.NewLine}".ToCharArray(), cancellationToken);
         }
 
         private static Task ShowVersionAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
-            return Console.Out.WriteLineAsync($"Version: {BinviewCli.version}");
+            return Console.Out.WriteLineAsync($"Version: {BinviewCli.version}".ToCharArray(), cancellationToken);
         }
 
         private static async Task ShowHelpAsync(CancellationToken cancellationToken = default(CancellationToken))
@@ -85,7 +147,7 @@ namespace binview.cli
 
             var cliBuilder = new StringBuilder();
             cliBuilder.Append($"Usage: {BinviewCli.executableName}");
-            foreach (var kvp in Configuration.ConfigurationKeys)
+            foreach (var kvp in CommandLineArgs.ConfigurationKeys)
             {
                 cliBuilder.Append(' ');
 
@@ -108,9 +170,9 @@ namespace binview.cli
 
             cliBuilder.AppendLine($"{Environment.NewLine}{Environment.NewLine}All command-line arguments should be prefixed with two dashes ('--')");
             cliBuilder.AppendLine("Command-line arguments:");
-            var maxLengthCol1 = Configuration.ConfigurationKeys.Select(x => x.Key.Length + (!string.IsNullOrEmpty(x.Value.ParamName) ? x.Value.ParamName.Length : 0)).Max() + (tab.Length * 3);
+            var maxLengthCol1 = CommandLineArgs.ConfigurationKeys.Select(x => x.Key.Length + (!string.IsNullOrEmpty(x.Value.ParamName) ? x.Value.ParamName.Length : 0)).Max() + (tab.Length * 3);
             cliBuilder.AppendLine();
-            foreach (var kvp in Configuration.ConfigurationKeys)
+            foreach (var kvp in CommandLineArgs.ConfigurationKeys)
             {
                 var thisArgString = new StringBuilder(string.Concat(tab, kvp.Key));
                 if (!string.IsNullOrEmpty(kvp.Value.ParamName))
@@ -140,18 +202,18 @@ namespace binview.cli
                 .Build();
         }
 
-        private static ILoggerFactory BuildLoggerFactory(IConfigurationRoot configuration)
+        private static ILoggerFactory BuildLoggerFactory(IConfigurationRoot configuration, bool showTimestamps)
         {
             return LoggerFactory.Create(builder =>
             {
-                if (!configuration.TryGetEnumValue<LogLevel>(Configuration.LogLevel, out var logLevel))
+                if (!configuration.TryGetEnumValue<LogLevel>(CommandLineArgs.LogLevel, out var logLevel))
                 {
                     logLevel = defaultLogLevel;
                 }
 
                 builder.SetMinimumLevel(logLevel);
 
-                var timestampFormat = configuration.ContainsKey(Configuration.LogShowTimestamp)
+                var timestampFormat = showTimestamps
                     ? $"[{CultureInfo.CurrentCulture.DateTimeFormat.SortableDateTimePattern}.fff] "
                     : default(string?);
 

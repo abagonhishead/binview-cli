@@ -1,7 +1,7 @@
-﻿using Microsoft.Extensions.Configuration;
-
-namespace binview.cli.Extensions
+﻿namespace binview.cli.Extensions
 {
+    using Microsoft.Extensions.Configuration;
+
     public static class ConfigurationExtensions
     {
         public static bool TryGetValue<T>(this IConfiguration source, string key, out T? result)
@@ -19,6 +19,40 @@ namespace binview.cli.Extensions
         {
             return source.TryGetValue(key, out result) &&
                 !string.IsNullOrEmpty(result);
+        }
+
+        public static bool TryGetInt64Value(this IConfiguration source, string key, out long? result)
+        {
+            result = default(long?);
+            if (source.TryGetValue(key, out string stringResult) && long.TryParse(stringResult, out var longResult))
+            {
+                result = longResult;
+            }
+
+            return result.HasValue;
+        }
+
+        public static bool TryGetUint64Value(this IConfiguration source, string key, out ulong? result)
+        {
+            result = default(ulong?);
+            if (source.TryGetValue(key, out string stringResult) && ulong.TryParse(stringResult, out var ulongResult))
+            {
+                result = ulongResult;
+            }
+
+            return result.HasValue;
+        }
+
+        public static bool TryGetInt32Value(this IConfiguration source, string key, out int? result)
+        {
+            result = default(int?);
+            if (source.TryGetInt64Value(key, out var longResult) &&
+                longResult < int.MaxValue)
+            {
+                result = (int)longResult;
+            }
+
+            return result.HasValue;
         }
 
         public static bool TryGetEnumValue<T>(this IConfiguration source, string key, out T? result)
