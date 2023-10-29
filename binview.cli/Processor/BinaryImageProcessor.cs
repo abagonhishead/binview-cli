@@ -3,6 +3,7 @@
     using System.Buffers;
     using System.Diagnostics;
     using System.Drawing;
+    using binview.cli.Extensions;
     using Microsoft.Extensions.Logging;
 
     public class BinaryImageProcessor : IBinaryImageProcessor
@@ -83,8 +84,7 @@
                             !cancellationToken.IsCancellationRequested)
                         {
                             var readCount = await inputStream.ReadAsync(buffer, 0, BinaryImageProcessor.bytesPerPixel, cancellationToken);
-                            var colour = Color.FromArgb(255, buffer[0], buffer[1], buffer[2]);
-                            graphics.DrawRectangle(new Pen(colour), x, y, 1, 1);
+                            graphics.DrawPixel(x, y, buffer[0], buffer[1], buffer[2]);
 
                             if (x == widthHeight)
                             {
