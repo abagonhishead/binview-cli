@@ -1,7 +1,7 @@
 # binview-cli
 A quick and dirty command-line tool for generating images from binary data.
 
-When I say quick and dirty, I mean _really_ quick and dirty. I wrote this in 2 hours and just shared it because I thought other people might find it useful. It is slow when processing large files and probably won't run on Linux without moving it to SkiaSharp or something.
+I mostly wrote this for fun -- sometimes looking at memory dumps or binary data as an image can tell you a lot about what it contains and how the data is structured. It's also part of a wider project I'm working towards that relates to image [steganography](https://en.wikipedia.org/wiki/Steganography) and storing binary data in image format.
 
 # Usage
 Build it, and then:
@@ -14,6 +14,6 @@ Feel free to contribute.
 Also feel free to fork and improve, but I'd appreciate a message so I can see what you've done.
 
 # TODO
-- Improve performance by parallelising large images (probably one row per CPU or something)
-- Remove dependency on System.Drawing.Common since *nix support is deprecated on .NET 7 (use SkiaSharp?)
-- Check logging is actually working properly since I couldn't see any `LogLevel.Debug` events
+- Unit tests
+- Check *nix support. It should be cross-platform but I haven't tested it yet.
+- Build automation & binary release
