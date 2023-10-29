@@ -16,3 +16,4 @@ Also feel free to fork and improve, but I'd appreciate a message so I can see wh
 # TODO
 - Unit tests
 - Check *nix support. It should be cross-platform but I haven't tested it yet.
+- Build automation & binary release
