@@ -296,26 +296,51 @@ indent_style = space
 dotnet_analyzer_diagnostic.category-Style.severity = error
 
 ### Specific analysis rule severity settings go here ###
+# CS0843: Auto-implemented properties not assigned to in struct constructors
+dotnet_diagnostic.CA0843.severity = error
+
 # CA1024: Use properties where appropriate
 dotnet_diagnostic.CA1024.severity = none
+
+# CA1051: Do not declare visible instance fields (use properties instead!)
+dotnet_diagnostic.CA1051.severity = error
+
+# CA1304: Pass an IFormatProvider to char.ToLower
+dotnet_diagnostic.CA1304.severity = none
+
+# CA1305: Pass an IFormatProvider to string.Format
+dotnet_diagnostic.CA1305.severity = none
 
 # CA1309: Use ordinal StringComparison
 dotnet_diagnostic.CA1309.severity = none
 
+# CA1707: Remove underscores from member names
+dotnet_diagnostic.CA1707.severity = none
+
+# CA1711: Method naming conventions
+dotnet_diagnostic.CA1711.severity = none
+
+# CA1725: Member names must match
+dotnet_diagnostic.CA1725.severity = none
+
 # CA1822: Instance member can be marked as static
 dotnet_diagnostic.CA1822.severity = none
 
+# CA1848: Use the LoggerMessage delegates
+# NOTE: We should try to use LoggerMessage where performance is a concern
+dotnet_diagnostic.CA1848.severity = suggestion
+
 # CA2007: Do not directly await a Task
 dotnet_diagnostic.CA2007.severity = suggestion
+
+# CA2201: ApplicationException is not sufficiently specific
+dotnet_diagnostic.CA2201.severity = suggestion
 
 # CA1716: Identifiers should not match keywords
 dotnet_diagnostic.CA1716.severity = none
 
 # CA1851: Possible multiple enumerations of IEnumerable collection
 dotnet_diagnostic.CA1851.severity = suggestion
-
-# CS0843: Auto-implemented properties not assigned to in struct constructors
-dotnet_diagnostic.CA0843.severity = error
 
 # CS8601: Possible null reference assignment
 dotnet_diagnostic.CS8601.severity = none
@@ -652,3 +677,4 @@ dotnet_diagnostic.SA1642.severity = none
 
 # SA1649: Filename should match first type name
 dotnet_diagnostic.SA1649.severity = error
+dotnet_style_operator_placement_when_wrapping = beginning_of_line

@@ -15,29 +15,12 @@
             return result != null;
         }
 
-        public static bool TryGetStringValue(this IConfiguration source, string key, out string? result)
-        {
-            return source.TryGetValue(key, out result) &&
-                !string.IsNullOrEmpty(result);
-        }
-
         public static bool TryGetInt64Value(this IConfiguration source, string key, out long? result)
         {
             result = default(long?);
             if (source.TryGetValue(key, out string stringResult) && long.TryParse(stringResult, out var longResult))
             {
                 result = longResult;
-            }
-
-            return result.HasValue;
-        }
-
-        public static bool TryGetUint64Value(this IConfiguration source, string key, out ulong? result)
-        {
-            result = default(ulong?);
-            if (source.TryGetValue(key, out string stringResult) && ulong.TryParse(stringResult, out var ulongResult))
-            {
-                result = ulongResult;
             }
 
             return result.HasValue;
@@ -83,12 +66,6 @@
             }
 
             return false;
-        }
-
-        public static bool ContainsKey(this IConfiguration source, string key)
-        {
-            var value = source.GetValue(typeof(object), key);
-            return value != null;
         }
 
         public static bool ContainsKey(this string[] source, string key)

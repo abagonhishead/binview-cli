@@ -12,7 +12,7 @@
     public static class BinviewCli
     {
         private const LogLevel defaultLogLevel = LogLevel.Trace;
-        private static readonly Version version = new Version(0, 0, 2, 0);
+        private static readonly Version version = new Version(0, 1, 0, 0);
         private static readonly string executableName = AppDomain.CurrentDomain.FriendlyName;
 
         public static async Task<int> Main(string[] args)
@@ -52,7 +52,7 @@
                             cts.Cancel();
                         };
 
-                        var processor = BinviewCli.BuildProcessor(logger, loggerFactory, configuration, args);
+                        var processor = BinviewCli.BuildProcessor(logger, loggerFactory, configuration);
 
                         try
                         {
@@ -91,21 +91,13 @@
             return returnCode;
         }
 
-        private static IBinaryImageProcessor BuildProcessor(ILogger logger, ILoggerFactory loggerFactory, IConfigurationRoot configuration, string[] args)
+        private static IBinaryImageProcessor BuildProcessor(ILogger logger, ILoggerFactory loggerFactory, IConfigurationRoot configuration)
         {
             var inputFilePath = configuration.GetValue<string>(CommandLineArgs.InputPath)!;
             logger.LogTrace("Configuration: using input file path '{ConfiguredInputFilePath}'", inputFilePath);
 
             var outputFilePath = configuration.GetValue<string>(CommandLineArgs.OutputPath)!;
             logger.LogTrace("Configuration: using output file path '{ConfiguredOutputFilePath}'", outputFilePath);
-
-            if (args.ContainsKey(CommandLineArgs.ProcessSerial))
-            {
-                logger.LogTrace("Configuration: serial processing was requested. Using '{ProcessorTypeName}'", typeof(BinaryImageProcessor).FullName);
-                return new BinaryImageProcessor(loggerFactory.CreateLogger<BinaryImageProcessor>(), inputFilePath, outputFilePath);
-            }
-
-            logger.LogTrace("Configuration: using '{ProcessorTypeName}'", typeof(ParallelBinaryImageProcessor).FullName);
 
             var threadCount = Environment.ProcessorCount + 1;
             if (configuration.TryGetInt32Value(CommandLineArgs.MaxConcurrency, out var passedThreadCount))
