@@ -1,7 +1,7 @@
 # binview-cli
 A quick and dirty command-line tool for generating images from binary data.
 
-I mostly wrote this for fun -- sometimes looking at memory dumps or binary data dumps as an image can tell you a lot about what the file contains. It's also part of a wider project I'm working towards that relates to image [steganography](https://en.wikipedia.org/wiki/Steganography) and storing binary data in image format.
+I mostly wrote this for fun -- sometimes looking at memory dumps or binary data as an image can tell you a lot about what it contains and how the data is structured. It's also part of a wider project I'm working towards that relates to image [steganography](https://en.wikipedia.org/wiki/Steganography) and storing binary data in image format.
 
 # Usage
 Build it, and then:
