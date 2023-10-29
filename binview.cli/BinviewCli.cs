@@ -11,8 +11,8 @@
 
     public static class BinviewCli
     {
-        private const LogLevel defaultLogLevel = LogLevel.Trace;
-        private static readonly Version version = new Version(0, 1, 0, 0);
+        private const LogLevel defaultLogLevel = LogLevel.Information;
+        private static readonly Version version = new Version(0, 1, 0, 1);
         private static readonly string executableName = AppDomain.CurrentDomain.FriendlyName;
 
         public static async Task<int> Main(string[] args)
@@ -33,6 +33,13 @@
                 await BinviewCli.ShowVersionAsync();
                 returnCode = defaultSuccessfulReturnCode;
             }
+            else if (!args.ContainsKey(CommandLineArgs.InputPath) || !args.ContainsKey(CommandLineArgs.OutputPath))
+            {
+                await Console.Out.WriteLineAsync("Invalid or missing parameters. Both an input & output filename must be specified\n");
+                await BinviewCli.ShowIntroAsync();
+                await BinviewCli.ShowHelpAsync();
+                returnCode = defaultUnsuccessfulReturnCode;
+            }
             else
             {
                 var configuration = default(IConfigurationRoot?);
@@ -52,32 +59,50 @@
                             cts.Cancel();
                         };
 
-                        var processor = BinviewCli.BuildProcessor(logger, loggerFactory, configuration);
-
+                        var processor = default(IBinaryImageProcessor);
                         try
                         {
-                            logger.LogInformation("{ExecutableName} v{ExecutableVersion}", BinviewCli.executableName, BinviewCli.version);
+                            processor = BinviewCli.BuildProcessor(logger, loggerFactory, configuration);
+                            try
+                            {
+                                logger.LogInformation("{ExecutableName} v{ExecutableVersion}", BinviewCli.executableName, BinviewCli.version);
 
-                            await processor.ProcessAsync(cts.Token);
+                                await processor.ProcessAsync(cts.Token);
 
-                            returnCode = defaultSuccessfulReturnCode;
+                                returnCode = defaultSuccessfulReturnCode;
+                            }
+                            catch (Exception ex)
+                            {
+                                returnCode = ex.HResult != 0 ? ex.HResult : defaultUnsuccessfulReturnCode;
+                                logger.LogCritical(ex, "Something went wrong during processing");
+                            }
                         }
-                        catch (Exception ex)
+                        catch (ArgumentException ex)
                         {
-                            returnCode = ex.HResult != 0 ? ex.HResult : defaultUnsuccessfulReturnCode;
-                            logger.LogCritical(ex, "Something went wrong during processing");
+                            await Console.Out.WriteLineAsync($"One or more parameters are invalid: {ex.Message}\n".ToCharArray(), cts.Token);
+                            await BinviewCli.ShowHelpAsync();
+                            returnCode = defaultUnsuccessfulReturnCode;
+                        }
+                        catch (NotSupportedException ex)
+                        {
+                            await Console.Out.WriteLineAsync($"Processing this data to an image is not supported: {ex.Message}\n".ToCharArray(), cts.Token);
+                            await BinviewCli.ShowHelpAsync();
+                            returnCode = defaultUnsuccessfulReturnCode;
                         }
                         finally
                         {
-                            if (processor is IDisposable disposable)
+                            if (processor is not null)
                             {
-                                logger.LogTrace("Disposing processor...");
-                                disposable.Dispose();
-                            }
-                            else if (processor is IAsyncDisposable asyncDisposable)
-                            {
-                                logger.LogTrace("Disposing processor...");
-                                await asyncDisposable.DisposeAsync();
+                                if (processor is IDisposable disposable)
+                                {
+                                    logger.LogTrace("Disposing processor...");
+                                    disposable.Dispose();
+                                }
+                                else if (processor is IAsyncDisposable asyncDisposable)
+                                {
+                                    logger.LogTrace("Disposing processor...");
+                                    await asyncDisposable.DisposeAsync();
+                                }
                             }
                         }
                     }
@@ -123,9 +148,13 @@
                 outputFilePath);
         }
 
-        private static Task ShowIntroAsync(CancellationToken cancellationToken = default(CancellationToken))
+        private static async Task ShowIntroAsync(string? message = default(string?), CancellationToken cancellationToken = default(CancellationToken))
         {
-            return Console.Out.WriteLineAsync($"{BinviewCli.executableName}: a small command-line application for generating images from binary files.{Environment.NewLine}".ToCharArray(), cancellationToken);
+            await Console.Out.WriteLineAsync($"{BinviewCli.executableName}: a small command-line application for generating images from binary files.{Environment.NewLine}".ToCharArray(), cancellationToken);
+            if (!string.IsNullOrEmpty(message))
+            {
+                await Console.Out.WriteLineAsync(message.ToCharArray(), cancellationToken);
+            }
         }
 
         private static Task ShowVersionAsync(CancellationToken cancellationToken = default(CancellationToken))

@@ -18,8 +18,8 @@
         {
             { CommandLineArgs.InputPath, ("file-path", "String. The path to the file to read from.", false) },
             { CommandLineArgs.OutputPath, ("file-path", "String. The path to write the output file to.", false) },
-            { CommandLineArgs.MaxConcurrency, ("{max-thread-count}", "Integer. The maximum number of worker threads to run concurrently. Defaults to the logical processor count plus 1.", true) },
-            { CommandLineArgs.LogLevel, ("level", $"Set the log level. Valid values are: {string.Join(", ", logLevels.Select(x => $"'{x.Key}' / '{x.Value}'"))}", true) },
+            { CommandLineArgs.MaxConcurrency, ("max-thread-count", "Integer. The maximum number of worker threads to run concurrently. Defaults to the logical processor count plus 1.", true) },
+            { CommandLineArgs.LogLevel, ("level", $"Set the log level. Valid values are: {string.Join(", ", logLevels.Select(x => $"'{x.Key}'/'{x.Value}'"))}", true) },
             { CommandLineArgs.LogShowTimestamp, (null, "Switch. Show timestamps for log output", true) },
             { CommandLineArgs.Help, (null, "Switch. Print the help output (this)", true) },
             { CommandLineArgs.Version, (null, "Switch. Print the current version and exit.", true) },
